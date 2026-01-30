@@ -1,0 +1,439 @@
+// Prisma schema for SocialPulse Backend
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  FACEBOOK
+  INSTAGRAM
+  TWITTER
+  LINKEDIN
+  YOUTUBE
+  TIKTOK
+  PINTEREST
+  REDDIT
+  DISCORD
+  TELEGRAM
+  WHATSAPP
+  SNAPCHAT
+  THREADS
+  MASTODON
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum Plan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum NotificationType {
+  POST_PUBLISHED
+  POST_FAILED
+  COMMENT_RECEIVED
+  MILESTONE_REACHED
+  TEAM_INVITE
+  ANALYTICS_REPORT
+  CAMPAIGN_COMPLETE
+  SYSTEM_UPDATE
+}
+
+enum GoalType {
+  POSTS
+  ENGAGEMENT
+  FOLLOWERS
+  RESPONSE_RATE
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  GIF
+  DOCUMENT
+}
+
+enum FolderType {
+  ROOT
+  CAMPAIGN
+  PLATFORM
+  CUSTOM
+}
+
+// User Model
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  password          String
+  firstName         String
+  lastName          String
+  name              String
+  bio               String?
+  language          String   @default("en")
+  avatar            String?
+  role              Role     @default(EDITOR)
+  plan              Plan     @default(STARTER)
+  timezone          String   @default("UTC")
+  emailVerified     Boolean  @default(false)
+  twoFactorEnabled  Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  teamId            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastLoginAt       DateTime?
+
+  // Relations
+  teams             TeamMember[]
+  ownedTeams        Team[]     @relation("OwnedTeams")
+  team              Team?      @relation("UserTeam", fields: [teamId], references: [id])
+  posts             Post[]
+  connectedPlatforms ConnectedPlatform[]
+  notifications     Notification[]
+  content           Content[]
+  campaigns         Campaign[]
+  progressGoals     ProgressGoal[]
+  auditLogs         AuditLog[]
+  webhooks          Webhook[]
+  contentFolders    ContentFolder[]
+  analytics         Analytics[]
+  sentInvites       TeamInvite[] @relation("InvitedBy")
+
+  @@map("users")
+}
+
+// Team Models
+model Team {
+  id          String   @id @default(uuid())
+  name        String
+  ownerId     String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  owner       User     @relation("OwnedTeams", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+  users       User[]   @relation("UserTeam")
+  posts       Post[]
+  content     Content[]
+  campaigns   Campaign[]
+  progressGoals ProgressGoal[]
+  teamInvites TeamInvite[]
+  contentFolders ContentFolder[]
+  webhooks    Webhook[]
+  analytics   Analytics[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  userId    String
+  role      Role     @default(VIEWER)
+  permissions Json?
+  joinedAt  DateTime @default(now())
+
+  // Relations
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model TeamInvite {
+  id        String   @id @default(uuid())
+  teamId    String
+  invitedById String
+  email     String
+  role      Role     @default(VIEWER)
+  status    InviteStatus @default(PENDING)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy User     @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@map("team_invites")
+}
+
+// Platform Connection Model
+model ConnectedPlatform {
+  id                String    @id @default(uuid())
+  userId            String
+  platform          Platform
+  platformUserId    String
+  platformUsername  String
+  accessToken       String // Encrypted
+  refreshToken      String? // Encrypted
+  tokenExpiresAt    DateTime?
+  scope             String[] // Array of permissions
+  isActive          Boolean   @default(true)
+  lastSyncAt        DateTime?
+  metadata          Json? // Platform-specific data
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts             PlatformPost[]
+
+  @@unique([userId, platform])
+  @@map("connected_platforms")
+}
+
+// Post Models
+model Post {
+  id            String     @id @default(uuid())
+  userId        String
+  teamId        String?
+  status        PostStatus @default(DRAFT)
+  content       String
+  mediaUrls     String[] // Array of media URLs
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  timezone      String     @default("UTC")
+  isRecurring   Boolean    @default(false)
+  recurringPattern Json? // Cron expression or custom pattern
+  campaignId    String?
+  aiGenerated   Boolean    @default(false)
+  metadata      Json? // Additional post data
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team          Team?      @relation(fields: [teamId], references: [id])
+  campaign      Campaign?  @relation(fields: [campaignId], references: [id])
+  platforms     PlatformPost[]
+
+  @@map("posts")
+}
+
+model PlatformPost {
+  id                String   @id @default(uuid())
+  postId            String
+  platformId        String
+  platform          Platform
+  platformPostId    String? // ID from the platform API
+  platformUrl       String?
+  status            PostStatus @default(PUBLISHED)
+  platformSpecificData Json? // Hashtags, mentions, location, etc.
+  publishedAt       DateTime?
+  failureReason     String?
+  retryCount        Int      @default(0)
+
+  // Relations
+  post              Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  platformConnection ConnectedPlatform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  analytics         Analytics[]
+
+  @@unique([postId, platformId])
+  @@map("platform_posts")
+}
+
+// Analytics Model
+model Analytics {
+  id              String   @id @default(uuid())
+  platformPostId  String
+  userId          String?
+  teamId          String?
+  platform        Platform
+  date            DateTime @db.Date
+  impressions     Int?
+  reach           Int?
+  engagement      Int?
+  likes           Int?
+  comments        Int?
+  shares          Int?
+  clicks          Int?
+  saves           Int?
+  views           Int?
+  videoViews      Int?
+  profileVisits   Int?
+  followerCount   Int?
+  followerChange  Int?
+  engagementRate  Float?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  platformPost    PlatformPost @relation(fields: [platformPostId], references: [id], onDelete: Cascade)
+  user            User?    @relation(fields: [userId], references: [id])
+  team            Team?    @relation(fields: [teamId], references: [id])
+
+  @@map("analytics")
+}
+
+// Content Library Model
+model Content {
+  id          String      @id @default(uuid())
+  userId      String
+  teamId      String?
+  type        ContentType
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  url         String // S3 URL
+  thumbnailUrl String?
+  width       Int?
+  height      Int?
+  duration    Int? // For videos in seconds
+  tags        String[]
+  folderId    String?
+  uploadedAt  DateTime    @default(now())
+  usageCount  Int         @default(0)
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?       @relation(fields: [teamId], references: [id])
+  folder      ContentFolder? @relation(fields: [folderId], references: [id])
+
+  @@map("content")
+}
+
+model ContentFolder {
+  id          String      @id @default(uuid())
+  name        String
+  type        FolderType  @default(CUSTOM)
+  parentId    String?
+  userId      String
+  teamId      String?
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?       @relation(fields: [teamId], references: [id])
+  parent      ContentFolder? @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children    ContentFolder[] @relation("FolderHierarchy")
+  content     Content[]
+
+  @@map("content_folders")
+}
+
+// Notification Model
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  actionUrl String?
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Campaign Model
+model Campaign {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  status      String   @default("active")
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  goals       Json?
+  userId      String
+  teamId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?    @relation(fields: [teamId], references: [id])
+  posts       Post[]
+
+  @@map("campaigns")
+}
+
+// Progress Goal Model
+model ProgressGoal {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  target      Int
+  current     Int      @default(0)
+  type        String
+  period      String   @default("monthly")
+  userId      String
+  teamId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?    @relation(fields: [teamId], references: [id])
+
+  @@map("progress_goals")
+}
+
+// Audit Log Model
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String
+  resource    String
+  resourceId  String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+// Webhook Model
+model Webhook {
+  id          String   @id @default(uuid())
+  url         String
+  events      String[] // Array of event types
+  secret      String
+  active      Boolean  @default(true)
+  userId      String
+  teamId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?    @relation(fields: [teamId], references: [id])
+
+  @@map("webhooks")
+}

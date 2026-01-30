@@ -1,0 +1,241 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   GLOBAL STYLES - PERFORMANCE & MOBILE OPTIMIZATION
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  height: auto;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize body for iOS and Android */
+body {
+  background: #0F172A;
+  color: #f8fafc;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* iOS optimization */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Enable momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
+/* Touch and interaction optimization */
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   Scrollbar styling - consistent across browsers
+-============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 217, 255, 0.5);
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 217, 255, 0.8);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-color: rgba(0, 217, 255, 0.5) rgba(255, 255, 255, 0.05);
+  scrollbar-width: thin;
+}
+
+/* ============================================================
+   Glassmorphism effects - optimized for performance
+   ============================================================ */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.glass-soft {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 34px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* ============================================================
+   Animated mesh background - optimized performance
+   ============================================================ */
+.mesh-bg {
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.mesh-bg::before,
+.mesh-bg::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(closest-side, rgba(0, 217, 255, 0.35), transparent 60%),
+    radial-gradient(closest-side, rgba(167, 139, 250, 0.28), transparent 60%),
+    radial-gradient(closest-side, rgba(236, 72, 153, 0.18), transparent 60%);
+  filter: blur(30px);
+  opacity: 0.9;
+  animation: mesh-move 18s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.mesh-bg::after {
+  opacity: 0.55;
+  animation-duration: 24s;
+  mix-blend-mode: screen;
+}
+
+@keyframes mesh-move {
+  0% {
+    transform: translate3d(-2%, -2%, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(2%, 2%, 0) rotate(8deg);
+  }
+  100% {
+    transform: translate3d(-2%, -2%, 0) rotate(0deg);
+  }
+}
+
+/* ============================================================
+   Focus styles - accessible keyboard navigation
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid rgba(0, 217, 255, 0.9);
+  outline-offset: 3px;
+}
+
+/* Platform colors utility classes - for social media icons and badges only */
+.platform-facebook {
+  --platform-color: #1877F2;
+}
+
+.platform-instagram {
+  --platform-color: #E4405F;
+}
+
+.platform-x {
+  --platform-color: #000000;
+}
+
+.platform-linkedin {
+  --platform-color: #0A66C2;
+}
+
+.platform-youtube {
+  --platform-color: #FF0000;
+}
+
+.platform-tiktok {
+  --platform-color: #000000;
+}
+
+.platform-pinterest {
+  --platform-color: #E60B0B;
+}
+
+.platform-snapchat {
+  --platform-color: #FFFC00;
+}
+
+.platform-whatsapp {
+  --platform-color: #25D366;
+}
+
+.platform-telegram {
+  --platform-color: #0088CC;
+}
+
+.platform-reddit {
+  --platform-color: #FF4500;
+}
+
+.platform-discord {
+  --platform-color: #5865F2;
+}
+
+.platform-twitch {
+  --platform-color: #9146FF;
+}
+
+.platform-threads {
+  --platform-color: #000000;
+}
+
+.platform-mastodon {
+  --platform-color: #6364FF;
+}
+
+.platform-bereal {
+  --platform-color: #000000;
+}
+
+.platform-google-business {
+  --platform-color: #4285F4;
+}
+
