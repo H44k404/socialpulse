@@ -78,7 +78,7 @@ git push -u origin master
 - **Database**: PostgreSQL (Railway provided)
 - **Real-time**: Socket.IO enabled
 - **Build**: `npm run build`
-- **Start**: `npm run dev`
+- **Start**: `npm run start`
 
 ### Database
 - **Type**: PostgreSQL
